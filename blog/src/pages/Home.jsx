@@ -767,7 +767,7 @@ const HomeScreen = () => {
               <h4 className="text-white font-semibold mb-4">Follow Us</h4>
               <div className="flex gap-3 flex-wrap">
                 <a
-                  href="https://www.facebook.com/sirpeace gh"
+                  href="https://www.facebook.com/sirpeacegh"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-indigo-600 transition"
@@ -775,30 +775,42 @@ const HomeScreen = () => {
                 >
                   <Facebook className="w-5 h-5" />
                 </a>
-                <button
+                <a
+                  href="https://www.x.com/sirpeacegh"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-indigo-600 transition"
-                  aria-label="Twitter"
+                  aria-label="X"
                 >
                   <Twitter className="w-5 h-5" />
-                </button>
-                <button
+                </a>
+                <a
+                  href="https://www.instagram.com/sirpeacegh"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-indigo-600 transition"
-                  aria-label="Instagram"
+                  aria-label="instagram"
                 >
                   <Instagram className="w-5 h-5" />
-                </button>
-                <button
+                </a>
+                <a
+                  href="https://www.youtube.com/sirpeacegh"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-indigo-600 transition"
-                  aria-label="YouTube"
+                  aria-label="youtube"
                 >
                   <Youtube className="w-5 h-5" />
-                </button>
-                <button
+                </a>
+                <a
+                  href="https://www.tiktok.com/@sirpeacegh"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-indigo-600 transition"
-                  aria-label="TikTok"
+                  aria-label="tiktok"
                 >
                   <TikTokIcon className="w-5 h-5" />
-                </button>
+                </a>
               </div>
             </div>
           </div>
