@@ -1,4 +1,10 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+  useCallback,
+} from "react";
 import {
   Home,
   TrendingUp,
@@ -17,6 +23,10 @@ import {
   Share2,
   Bookmark,
   Heart,
+  Facebook,
+  Twitter,
+  Instagram,
+  Youtube,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -27,7 +37,56 @@ import {
   updatePostInState,
 } from "../store/slices/post";
 import { client } from "@/lib/appwrite";
-// Dummy Data
+
+// TikTok Icon Component
+const TikTokIcon = ({ className }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" />
+  </svg>
+);
+
+// Skeleton Components
+const SkeletonCard = () => (
+  <div className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse">
+    <div className="h-48 bg-gray-300" />
+    <div className="p-5 space-y-3">
+      <div className="h-4 bg-gray-300 rounded w-3/4" />
+      <div className="h-4 bg-gray-300 rounded w-1/2" />
+      <div className="flex justify-between">
+        <div className="h-3 bg-gray-300 rounded w-20" />
+        <div className="h-3 bg-gray-300 rounded w-16" />
+      </div>
+    </div>
+  </div>
+);
+
+const SkeletonFeatured = () => (
+  <div className="bg-white rounded-xl shadow-lg overflow-hidden animate-pulse">
+    <div className="h-96 bg-gray-300" />
+  </div>
+);
+
+const SkeletonSidebar = () => (
+  <div className="bg-white rounded-lg shadow-md p-6 animate-pulse">
+    <div className="h-6 bg-gray-300 rounded w-1/2 mb-6" />
+    <div className="space-y-4">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="flex gap-4">
+          <div className="w-8 h-8 bg-gray-300 rounded" />
+          <div className="flex-1 space-y-2">
+            <div className="h-4 bg-gray-300 rounded" />
+            <div className="h-3 bg-gray-300 rounded w-3/4" />
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
 
 const categories = [
   {
@@ -98,13 +157,13 @@ const HomeScreen = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedPost, setSelectedPost] = useState(null);
-  const { posts } = useSelector((store) => store.post);
+  const { posts, isLoading } = useSelector((store) => store.post);
   const dispatch = useDispatch();
   const unsubscribeRef = useRef(null);
 
   useEffect(() => {
     dispatch(fetchPosts());
-  }, []);
+  }, [dispatch]);
 
   useEffect(() => {
     let unsubscribe = null;
@@ -121,7 +180,6 @@ const HomeScreen = () => {
           console.log("🔔 Realtime event:", response.events);
           const post = response.payload;
 
-          // Handle create event
           if (
             response.events.includes(
               "databases.*.collections.*.documents.*.create"
@@ -129,18 +187,14 @@ const HomeScreen = () => {
           ) {
             console.log("➕ Adding new post to state");
             dispatch(addPost(post));
-          }
-          // Handle update event
-          else if (
+          } else if (
             response.events.includes(
               "databases.*.collections.*.documents.*.update"
             )
           ) {
             console.log("✏️ Updating post in state");
             dispatch(updatePostInState(post));
-          }
-          // Handle delete event
-          else if (
+          } else if (
             response.events.includes(
               "databases.*.collections.*.documents.*.delete"
             )
@@ -156,7 +210,6 @@ const HomeScreen = () => {
 
     setupRealtime();
 
-    // Cleanup on unmount
     return () => {
       if (unsubscribeRef.current) {
         console.log("🔌 Unsubscribing from realtime");
@@ -166,7 +219,7 @@ const HomeScreen = () => {
     };
   }, [dispatch]);
 
-  const getIconComponent = (iconName) => {
+  const getIconComponent = useCallback((iconName) => {
     const icons = {
       Users,
       DollarSign,
@@ -178,82 +231,87 @@ const HomeScreen = () => {
     };
     const Icon = icons[iconName] || Newspaper;
     return <Icon className="w-5 h-5" />;
-  };
+  }, []);
 
-  const formatDate = (createdAt) => {
+  const formatDate = useCallback((createdAt) => {
     return new Date(createdAt).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
     });
-  };
-  const formatViews = (views = (Math.random() * 1000).toFixed(0)) => {
-    if (views >= 1000) {
-      return (views / 1000).toFixed(1) + "K";
-    }
-    return views;
-  };
+  }, []);
 
-  const filteredPosts = selectedCategory
-    ? posts?.filter((post) => post.category === selectedCategory)
-    : posts;
+  const formatViews = useCallback(
+    (views = Math.floor(Math.random() * 1000)) => {
+      if (views >= 1000) {
+        return (views / 1000).toFixed(1) + "K";
+      }
+      return views;
+    },
+    []
+  );
 
-  const searchedPosts = searchQuery
-    ? filteredPosts?.filter(
-        (post) =>
-          post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          post.excerpt.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : filteredPosts;
+  const filteredPosts = useMemo(() => {
+    return selectedCategory
+      ? posts?.filter((post) => post.category === selectedCategory)
+      : posts;
+  }, [posts, selectedCategory]);
 
-  const handlePostClick = (post) => {
+  const searchedPosts = useMemo(() => {
+    return searchQuery
+      ? filteredPosts?.filter(
+          (post) =>
+            post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            post.excerpt.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      : filteredPosts;
+  }, [filteredPosts, searchQuery]);
+
+  const handlePostClick = useCallback((post) => {
     setSelectedPost(post);
     window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  }, []);
 
-  const handleBackToHome = () => {
+  const handleBackToHome = useCallback(() => {
     setSelectedPost(null);
-  };
+  }, []);
+
+  const handleCategoryChange = useCallback((category) => {
+    setSelectedCategory(category);
+    setIsMobileMenuOpen(false);
+  }, []);
 
   if (selectedPost) {
     return (
       <div className="min-h-screen bg-gray-50">
-        {/* Header */}
         <header className="bg-white shadow-md sticky top-0 z-50">
           <div className="max-w-7xl mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <button
                 onClick={handleBackToHome}
                 className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 transition"
+                aria-label="Back to home"
               >
                 <ArrowLeft className="w-5 h-5" />
-                {/* <span className="font-medium">Back to Home</span> */}
               </button>
               <h1 className="text-2xl font-bold text-indigo-600">
                 SirPeace<span className="text-gray-800">Blog</span>
               </h1>
-              {/*  <div className="flex items-center gap-3">
-                <button className="p-2 hover:bg-gray-100 rounded-full transition">
-                  <Share2 className="w-5 h-5 text-gray-600" />
-                </button>
-                <button className="p-2 hover:bg-gray-100 rounded-full transition">
-                  <Bookmark className="w-5 h-5 text-gray-600" />
-                </button>
-              </div> */}
+              <div className="w-8" />
             </div>
           </div>
         </header>
 
-        {/* Article Content */}
         <main className="max-w-4xl mx-auto px-4 py-8">
           <article className="bg-white rounded-xl shadow-lg overflow-hidden">
             <img
               src={selectedPost.coverImage}
               alt={selectedPost.title}
               className="w-full h-96 object-cover"
+              loading="lazy"
             />
             <div className="p-8">
-              <div className="flex items-center gap-4 mb-6">
+              <div className="flex items-center gap-4 mb-6 flex-wrap">
                 <span className="inline-block bg-indigo-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
                   {selectedPost.category}
                 </span>
@@ -291,73 +349,60 @@ const HomeScreen = () => {
                   </p>
                 ))}
               </div>
-
-              <div className="mt-12 pt-8 border-t border-gray-200">
-                {/* <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <button className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition">
-                      <MessageCircle className="w-5 h-5" />
-                      <span>Comment</span>
-                    </button>
-                    <button className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition">
-                      <Share2 className="w-5 h-5" />
-                      <span>Share</span>
-                    </button>
-                  </div>
-                  <button className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition">
-                    <Bookmark className="w-5 h-5" />
-                    <span>Save</span>
-                  </button>
-                </div> */}
-              </div>
             </div>
           </article>
 
-          {/* Related Posts */}
-          <div className="mt-12">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
-              Related Articles
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {posts
-                .filter(
-                  (post) =>
-                    post.category === selectedPost.category &&
-                    post.$id !== selectedPost.$id
-                )
-                .slice(0, 2)
-                .map((post) => (
-                  <div
-                    key={post.id}
-                    onClick={() => handlePostClick(post)}
-                    className="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer hover:shadow-xl transition group"
-                  >
-                    <div className="relative h-48 overflow-hidden">
-                      <img
-                        src={post.coverImage}
-                        alt={post.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                      />
+          {posts.filter(
+            (post) =>
+              post.category === selectedPost.category &&
+              post.$id !== selectedPost.$id
+          ).length > 0 && (
+            <div className="mt-12">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                Related Articles
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {posts
+                  .filter(
+                    (post) =>
+                      post.category === selectedPost.category &&
+                      post.$id !== selectedPost.$id
+                  )
+                  .slice(0, 2)
+                  .map((post) => (
+                    <div
+                      key={post.$id}
+                      onClick={() => handlePostClick(post)}
+                      className="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer hover:shadow-xl transition group"
+                    >
+                      <div className="relative h-48 overflow-hidden">
+                        <img
+                          src={post.coverImage}
+                          alt={post.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                          loading="lazy"
+                        />
+                      </div>
+                      <div className="p-5">
+                        <h3 className="font-bold text-lg mb-2 text-gray-800 group-hover:text-indigo-600 transition line-clamp-2">
+                          {post.title}
+                        </h3>
+                        <p className="text-gray-600 text-sm line-clamp-2">
+                          {post.excerpt}
+                        </p>
+                      </div>
                     </div>
-                    <div className="p-5">
-                      <h3 className="font-bold text-lg mb-2 text-gray-800 group-hover:text-indigo-600 transition line-clamp-2">
-                        {post.title}
-                      </h3>
-                      <p className="text-gray-600 text-sm line-clamp-2">
-                        {post.excerpt}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+              </div>
             </div>
-          </div>
+          )}
         </main>
       </div>
     );
   }
 
-  const featuredPost = searchedPosts[0];
-  const trendingPosts = posts.length > 0 && searchedPosts?.slice(0, 1);
+  const featuredPost = searchedPosts?.[0];
+  const trendingPosts = posts.length > 0 && searchedPosts?.slice(0, 3);
   const recentPosts = searchedPosts?.slice(1);
 
   return (
@@ -373,7 +418,7 @@ const HomeScreen = () => {
           </div>
           <div className="flex items-center gap-3">
             <Clock className="w-4 h-4" />
-            <span>
+            <span className="hidden sm:inline">
               {new Date().toLocaleDateString("en-US", {
                 weekday: "long",
                 month: "long",
@@ -393,6 +438,7 @@ const HomeScreen = () => {
               <button
                 className="lg:hidden p-2 hover:bg-gray-100 rounded"
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                aria-label="Toggle menu"
               >
                 {isMobileMenuOpen ? <X /> : <Menu />}
               </button>
@@ -401,18 +447,8 @@ const HomeScreen = () => {
               </h1>
             </div>
 
-            {/* <div className="hidden md:flex items-center bg-gray-100 rounded-lg px-4 py-2 w-96">
-              <Search className="w-5 h-5 text-gray-500" />
-              <input
-                type="text"
-                placeholder="Search news..."
-                className="bg-transparent border-none outline-none ml-2 w-full"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div> */}
             <Link to="/admin/login">
-              <button className="hidden sm:block bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition">
+              <button className="bg-indigo-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-indigo-700 transition text-sm sm:text-base">
                 Login
               </button>
             </Link>
@@ -425,7 +461,7 @@ const HomeScreen = () => {
           >
             <div className="flex flex-col lg:flex-row gap-2 lg:gap-4">
               <button
-                onClick={() => setSelectedCategory(null)}
+                onClick={() => handleCategoryChange(null)}
                 className={`flex items-center gap-2 px-4 py-2 rounded transition ${
                   !selectedCategory
                     ? "bg-indigo-600 text-white"
@@ -438,7 +474,7 @@ const HomeScreen = () => {
               {categories.map((cat) => (
                 <button
                   key={cat.id}
-                  onClick={() => setSelectedCategory(cat.name)}
+                  onClick={() => handleCategoryChange(cat.name)}
                   className={`flex items-center gap-2 px-4 py-2 rounded transition ${
                     selectedCategory === cat.name
                       ? "bg-indigo-600 text-white"
@@ -456,7 +492,22 @@ const HomeScreen = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {searchedPosts.length === 0 ? (
+        {isLoading ? (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-8">
+              <SkeletonFeatured />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {[1, 2, 3, 4].map((i) => (
+                  <SkeletonCard key={i} />
+                ))}
+              </div>
+            </div>
+            <div className="space-y-6">
+              <SkeletonSidebar />
+              <SkeletonSidebar />
+            </div>
+          </div>
+        ) : searchedPosts?.length === 0 ? (
           <div className="text-center py-16">
             <Search className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-2xl font-bold text-gray-800 mb-2">
@@ -479,6 +530,7 @@ const HomeScreen = () => {
                       src={featuredPost.coverImage}
                       alt={featuredPost.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                      loading="eager"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
@@ -488,10 +540,7 @@ const HomeScreen = () => {
                       <h2 className="text-3xl font-bold mb-3 group-hover:text-indigo-300 transition">
                         {featuredPost.title}
                       </h2>
-                      {/* <p className="text-gray-200 mb-4">
-                        {featuredPost.excerpt}
-                      </p> */}
-                      <div className="flex items-center gap-4 text-sm text-gray-300">
+                      <div className="flex items-center gap-4 text-sm text-gray-300 flex-wrap">
                         <span className="flex items-center gap-1">
                           <Users className="w-4 h-4" />
                           {featuredPost.author}
@@ -514,15 +563,13 @@ const HomeScreen = () => {
               <div>
                 <h3 className="text-2xl font-bold mb-6 text-gray-800">
                   {selectedCategory
-                    ? `${
-                        categories.find((c) => c.name === selectedCategory).name
-                      } Stories`
+                    ? `${selectedCategory} Stories`
                     : "Latest Stories"}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {recentPosts.map((post) => (
+                  {recentPosts?.map((post) => (
                     <div
-                      key={post.id}
+                      key={post.$id}
                       onClick={() => handlePostClick(post)}
                       className="bg-white rounded-lg shadow-md overflow-hidden group cursor-pointer hover:shadow-xl transition"
                     >
@@ -531,6 +578,7 @@ const HomeScreen = () => {
                           src={post.coverImage}
                           alt={post.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                          loading="lazy"
                         />
                         <span className="absolute top-3 left-3 bg-indigo-600 text-white px-3 py-1 rounded text-xs font-semibold">
                           {post.category}
@@ -540,9 +588,6 @@ const HomeScreen = () => {
                         <h3 className="font-bold text-lg mb-2 text-gray-800 group-hover:text-indigo-600 transition line-clamp-2">
                           {post.title}
                         </h3>
-                        {/*  <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                          {post.excerpt}
-                        </p> */}
                         <div className="flex items-center justify-between text-xs text-gray-500">
                           <span className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
@@ -569,9 +614,9 @@ const HomeScreen = () => {
                   </h3>
                 </div>
                 <div className="space-y-4">
-                  {trendingPosts.map((post, index) => (
+                  {trendingPosts?.map((post, index) => (
                     <div
-                      key={post.id}
+                      key={post.$id}
                       onClick={() => handlePostClick(post)}
                       className="flex gap-4 pb-4 border-b border-gray-100 last:border-0 cursor-pointer group"
                     >
@@ -610,7 +655,7 @@ const HomeScreen = () => {
                     return (
                       <button
                         key={cat.id}
-                        onClick={() => setSelectedCategory(cat.name)}
+                        onClick={() => handleCategoryChange(cat.name)}
                         className={`w-full flex items-center justify-between p-3 rounded-lg transition group ${
                           selectedCategory === cat.name
                             ? "bg-indigo-50 border-2 border-indigo-600"
@@ -620,7 +665,7 @@ const HomeScreen = () => {
                         <div className="flex items-center gap-3">
                           <div
                             className={`p-2 rounded-lg transition ${
-                              selectedCategory === cat.id
+                              selectedCategory === cat.name
                                 ? "bg-indigo-600 text-white"
                                 : "bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100"
                             }`}
@@ -629,7 +674,7 @@ const HomeScreen = () => {
                           </div>
                           <span
                             className={`font-medium ${
-                              selectedCategory === cat.id
+                              selectedCategory === cat.name
                                 ? "text-indigo-600"
                                 : "text-gray-700"
                             }`}
@@ -682,24 +727,24 @@ const HomeScreen = () => {
               <h4 className="text-white font-semibold mb-4">Quick Links</h4>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link to="#" className="hover:text-indigo-400 transition">
+                  <a href="#" className="hover:text-indigo-400 transition">
                     About Us
-                  </Link>
+                  </a>
                 </li>
                 <li>
-                  <Link to="#" className="hover:text-indigo-400 transition">
+                  <a href="#" className="hover:text-indigo-400 transition">
                     Contact
-                  </Link>
+                  </a>
                 </li>
                 <li>
-                  <Link to="#" className="hover:text-indigo-400 transition">
+                  <a href="#" className="hover:text-indigo-400 transition">
                     Privacy Policy
-                  </Link>
+                  </a>
                 </li>
                 <li>
-                  <Link to="#" className="hover:text-indigo-400 transition">
+                  <a href="#" className="hover:text-indigo-400 transition">
                     Terms of Service
-                  </Link>
+                  </a>
                 </li>
               </ul>
             </div>
@@ -709,7 +754,7 @@ const HomeScreen = () => {
                 {categories.slice(0, 4).map((cat) => (
                   <li key={cat.id}>
                     <button
-                      onClick={() => setSelectedCategory(cat.id)}
+                      onClick={() => handleCategoryChange(cat.name)}
                       className="hover:text-indigo-400 transition"
                     >
                       {cat.name}
@@ -720,15 +765,37 @@ const HomeScreen = () => {
             </div>
             <div>
               <h4 className="text-white font-semibold mb-4">Follow Us</h4>
-              <div className="flex gap-3">
-                {["F", "T", "I", "Y"].map((social, index) => (
-                  <button
-                    key={index}
-                    className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-indigo-600 transition"
-                  >
-                    <span className="text-sm font-bold">{social}</span>
-                  </button>
-                ))}
+              <div className="flex gap-3 flex-wrap">
+                <button
+                  className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-indigo-600 transition"
+                  aria-label="Facebook"
+                >
+                  <Facebook className="w-5 h-5" />
+                </button>
+                <button
+                  className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-indigo-600 transition"
+                  aria-label="Twitter"
+                >
+                  <Twitter className="w-5 h-5" />
+                </button>
+                <button
+                  className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-indigo-600 transition"
+                  aria-label="Instagram"
+                >
+                  <Instagram className="w-5 h-5" />
+                </button>
+                <button
+                  className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-indigo-600 transition"
+                  aria-label="YouTube"
+                >
+                  <Youtube className="w-5 h-5" />
+                </button>
+                <button
+                  className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-indigo-600 transition"
+                  aria-label="TikTok"
+                >
+                  <TikTokIcon className="w-5 h-5" />
+                </button>
               </div>
             </div>
           </div>
