@@ -30,8 +30,159 @@ export const getUser = createAsyncThunk(
     }
   }
 );
-
 export const checkAuthSession = createAsyncThunk(
+  "auth/checkSession",
+  async (_, { rejectWithValue }) => {
+    try {
+      const appwriteUser = await account.get();
+
+      // Fetch user document from database
+      let userDoc;
+      try {
+        userDoc = await databases.getDocument(
+          import.meta.env.VITE_APPWRITE_DATABASE_ID,
+          import.meta.env.VITE_APPWRITE_USERS_COLLECTION_ID,
+          appwriteUser.$id
+        );
+      } catch (docError) {
+        // User document doesn't exist - create new user with viewer role
+        console.log("[Auth] No user document found, creating new user");
+        const now = new Date().toISOString();
+
+        try {
+          userDoc = await databases.createDocument(
+            import.meta.env.VITE_APPWRITE_DATABASE_ID,
+            import.meta.env.VITE_APPWRITE_USERS_COLLECTION_ID,
+            appwriteUser.$id,
+            {
+              username: appwriteUser.name || "User",
+              email: appwriteUser.email,
+              bio: "",
+              role: "viewer", // Default role
+              isActive: true,
+              createdAt: now,
+              updatedAt: now,
+              ...(appwriteUser.prefs?.avatar && {
+                avatarUrl: appwriteUser.prefs.avatar,
+              }),
+            }
+          );
+          console.log("[Auth] User document created successfully with viewer role");
+        } catch (createError) {
+          console.error("[Auth] Failed to create user document:", createError);
+          await account.deleteSession("current");
+          throw new Error("Failed to create user profile: " + createError.message);
+        }
+      }
+
+      // Only allow admin role to access admin panel
+      if (userDoc.role !== "admin") {
+        await account.deleteSession("current");
+        throw new Error("Unauthorized: Admin access only");
+      }
+
+      return {
+        id: appwriteUser.$id,
+        email: appwriteUser.email,
+        name: appwriteUser.name,
+        ...userDoc,
+      };
+    } catch (error) {
+      return rejectWithValue(error.message || "No active admin session");
+    }
+  }
+);
+
+export const handleOAuthCallback = createAsyncThunk(
+  "auth/handleCallback",
+  async (_, { rejectWithValue }) => {
+    try {
+      const appwriteUser = await account.get();
+
+      if (!appwriteUser) {
+        throw new Error("No authenticated user found");
+      }
+
+      console.log("[Auth] Login attempt:", appwriteUser.email);
+
+      // Check if user exists in database
+      let userDoc = null;
+      try {
+        userDoc = await databases.getDocument(
+          import.meta.env.VITE_APPWRITE_DATABASE_ID,
+          import.meta.env.VITE_APPWRITE_USERS_COLLECTION_ID,
+          appwriteUser.$id
+        );
+        console.log("[Auth] Existing user found in database");
+      } catch (error) {
+        // User doesn't exist - create new user with viewer role
+        console.log("[Auth] User not found in database, creating new user");
+        const now = new Date().toISOString();
+
+        try {
+          userDoc = await databases.createDocument(
+            import.meta.env.VITE_APPWRITE_DATABASE_ID,
+            import.meta.env.VITE_APPWRITE_USERS_COLLECTION_ID,
+            appwriteUser.$id,
+            {
+              username: appwriteUser.name || "User",
+              email: appwriteUser.email,
+              bio: "",
+              role: "viewer", // Default role
+              isActive: true,
+              createdAt: now,
+              updatedAt: now,
+              ...(appwriteUser.prefs?.avatar && {
+                avatarUrl: appwriteUser.prefs.avatar,
+              }),
+            }
+          );
+          console.log("[Auth] User document created successfully with viewer role");
+        } catch (createError) {
+          console.error("[Auth] Failed to create user document:", createError);
+          await account.deleteSession("current");
+          throw new Error("Failed to create user profile: " + createError.message);
+        }
+      }
+
+      // Verify admin role for admin panel access
+      if (userDoc.role !== "admin") {
+        await account.deleteSession("current");
+        throw new Error("Unauthorized: Admin access only");
+      }
+
+      // Update last login time
+      const now = new Date().toISOString();
+      try {
+        userDoc = await databases.updateDocument(
+          import.meta.env.VITE_APPWRITE_DATABASE_ID,
+          import.meta.env.VITE_APPWRITE_USERS_COLLECTION_ID,
+          appwriteUser.$id,
+          {
+            updatedAt: now,
+            isActive: true,
+          }
+        );
+      } catch (updateError) {
+        console.warn("[Auth] Failed to update last login:", updateError);
+      }
+
+      console.log("[Auth] Admin authenticated successfully");
+
+      return {
+        id: appwriteUser.$id,
+        email: appwriteUser.email,
+        name: appwriteUser.name,
+        ...userDoc,
+      };
+    } catch (error) {
+      console.error("[Auth] Authentication failed:", error);
+      return rejectWithValue(error.message || "Failed to authenticate");
+    }
+  }
+);
+
+/* export const checkAuthSession = createAsyncThunk(
   "auth/checkSession",
   async (_, { rejectWithValue }) => {
     try {
@@ -82,7 +233,8 @@ export const handleOAuthCallback = createAsyncThunk(
 
       console.log("[Auth] Admin login attempt:", appwriteUser.email);
 
-      // Whitelist of allowed admin emails
+      // Whitelist of allowed ay
+      // dmin emails
       const ALLOWED_ADMINS = [
         "darkolyrical@gmail.com",
         `liltrent999@gmail.com`,
@@ -177,7 +329,7 @@ export const handleOAuthCallback = createAsyncThunk(
     }
   }
 );
-
+ */
 export const logout = createAsyncThunk(
   "auth/logout",
   async (_, { rejectWithValue }) => {
