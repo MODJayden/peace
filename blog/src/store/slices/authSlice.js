@@ -7,8 +7,8 @@ export const loginWithGoogle = createAsyncThunk(
     try {
       await account.createOAuth2Session(
         "google",
-        `${window.location.origin}/auth/callback`,
-        `${window.location.origin}/admin/login`
+        `${window.location.origin}/#/auth/callback`,
+        `${window.location.origin}/#/admin/login`
       );
     } catch (error) {
       console.error("[Auth] Google login error:", error);
