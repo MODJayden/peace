@@ -19,6 +19,7 @@ import AdminDashboard from "@/pages/admin/AdminDashboard";
 /* import CreatePost from "@/pages/admin/CreatePost";
 import EditPost from "@/pages/admin/EditPost";
 import ManagePosts from "@/pages/admin/ManagePosts"; */
+import { AboutPage, ContactPage, TermsPage } from "./pages/About";
 
 // Components
 import AuthCallback from "@/components/auth/AuthCallback";
@@ -39,10 +40,10 @@ function App() {
       {/* Public Routes - No authentication required */}
       <Route element={<PublicLayout />}>
         <Route path="/" element={<Home />} />
-        {/*  <Route path="/blog" element={<BlogList />} />
-        <Route path="/blog/:slug" element={<BlogPost />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/contact" element={<Contact />} /> */}
+        {/* <Route path="/blog" element={<BlogList />} /> */}
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/contact" element={<ContactPage />} />
       </Route>
 
       {/* Auth Callback */}

@@ -26,8 +26,9 @@ import {
   removePost,
 } from "@/store/slices/post";
 import { useDispatch, useSelector } from "react-redux";
-import { getUser } from "@/store/slices/authSlice";
+import { getUser, logout } from "@/store/slices/authSlice";
 import { client } from "@/lib/appwrite";
+import { useNavigate } from "react-router-dom";
 
 const mockCategories = [
   "Business",
@@ -36,7 +37,7 @@ const mockCategories = [
   "International",
   "Health",
   "Education",
-  "Politics"
+  "Politics",
 ];
 
 const Dashboard = () => {
@@ -55,6 +56,7 @@ const Dashboard = () => {
   const { posts } = useSelector((store) => store.post);
   const unsubscribeRef = useRef(null);
   const hasFetchedRef = useRef(false);
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     title: "",
@@ -314,7 +316,7 @@ const Dashboard = () => {
   };
 
   const handleDelete = async (post) => {
-    console.log(post)
+    console.log(post);
     if (!window.confirm("Are you sure you want to delete this post?")) return;
 
     setIsLoading(true);
@@ -325,7 +327,7 @@ const Dashboard = () => {
       }
  */
       // Delete post
-      await dispatch(deletePost(post.$id)).then((res)=>console.log(res))
+      await dispatch(deletePost(post.$id)).then((res) => console.log(res));
       console.log("✅ Post deleted");
     } catch (error) {
       console.error("❌ Failed to delete post:", error);
@@ -352,6 +354,10 @@ const Dashboard = () => {
     setUploadedImageId(null);
     setError(null);
     setIsUploading(false);
+  };
+  const handleLogout = async () => {
+    await dispatch(logout());
+    navigate("/");
   };
 
   const filteredPosts = posts.filter((post) => {
@@ -385,11 +391,10 @@ const Dashboard = () => {
               </p>
             </div>
             <button
-              onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition shadow-lg hover:shadow-xl"
+              onClick={handleLogout}
+              className="flex text-center items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition shadow-lg hover:shadow-xl"
             >
-              <Plus className="w-5 h-5" />
-              Create New Post
+              Logout
             </button>
           </div>
         </div>
@@ -424,7 +429,15 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
-
+        <div className="flex justify-end mb-3">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition shadow-lg hover:shadow-xl"
+          >
+            <Plus className="w-5 h-5" />
+            Create New Post
+          </button>
+        </div>
         {error && (
           <div className="mb-6 p-4 rounded-lg border bg-red-50 border-red-200 text-red-800 flex items-start gap-3">
             <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />

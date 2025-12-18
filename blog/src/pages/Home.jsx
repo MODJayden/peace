@@ -374,7 +374,7 @@ const HomeScreen = () => {
           name="description"
           content="Stay updated with breaking news, sports, business, and entertainment from Ghana and around the world."
         />
-        <link rel="canonical" href="https://sirpeace.onrender.com/" />
+        <link rel="canonical" href="https://sirpeace.com/" />
         <meta
           property="og:title"
           content="SirPeace Blog – Latest Headlines from Ghana and Beyond"
@@ -384,10 +384,10 @@ const HomeScreen = () => {
           content="Stay updated with breaking news, sports, business, and entertainment from Ghana and around the world."
         />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://sirpeace.onrender.com/" />
+        <meta property="og:url" content="https://sirpeace.com/" />
         <meta
           property="og:image"
-          content="https://sirpeace.onrender.com/assets/news-preview.png"
+          content="https://sirpeace.com/assets/news-preview.png"
         />
         <meta name="twitter:card" content="summary_large_image" />
         <meta
@@ -400,15 +400,15 @@ const HomeScreen = () => {
         />
         <meta
           name="twitter:image"
-          content="https://sirpeace.onrender.com/assets/news-preview.png"
+          content="https://sirpeace.com/assets/news-preview.png"
         />
         <script type="application/ld+json">
           {JSON.stringify({
             "@context": "https://schema.org",
             "@type": "NewsMediaOrganization",
             name: "SirPeace Blog",
-            url: "https://sirpeace.onrender.com",
-            logo: "https://sirpeace.onrender.com/assets/news-logo.png",
+            url: "https://sirpeace.com",
+            logo: "https://sirpeace.com/assets/news-logo.png",
             sameAs: [
               "https://facebook.com/sirpeacegh",
               "https://twitter.com/sirpeacegh",
@@ -738,24 +738,23 @@ const HomeScreen = () => {
               <h4 className="text-white font-semibold mb-4">Quick Links</h4>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <a href="#" className="hover:text-indigo-400 transition">
+                  <Link to="about" className="hover:text-indigo-400 transition">
                     About Us
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-indigo-400 transition">
+                  <Link
+                    to="contact"
+                    className="hover:text-indigo-400 transition"
+                  >
                     Contact
-                  </a>
+                  </Link>
                 </li>
+
                 <li>
-                  <a href="#" className="hover:text-indigo-400 transition">
-                    Privacy Policy
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-indigo-400 transition">
+                  <Link to="terms" className="hover:text-indigo-400 transition">
                     Terms of Service
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>
