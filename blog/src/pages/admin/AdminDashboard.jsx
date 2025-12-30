@@ -51,7 +51,7 @@ const Dashboard = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [imageFile, setImageFile] = useState(null);
   const dispatch = useDispatch();
-  const [userId, setUserId] = useState(null);
+  const userId = useRef(null);
   const [uploadedImageId, setUploadedImageId] = useState(null);
   const { posts } = useSelector((store) => store.post);
   const unsubscribeRef = useRef(null);
@@ -74,8 +74,7 @@ const Dashboard = () => {
       try {
         const userResponse = await dispatch(getUser()).unwrap();
         const currentUserId = userResponse.$id;
-        setUserId(currentUserId);
-
+        userId.current = currentUserId;
         if (!hasFetchedRef.current) {
           await dispatch(fetchPostsByAuthor(currentUserId));
           hasFetchedRef.current = true;
@@ -91,72 +90,42 @@ const Dashboard = () => {
 
   // Set up realtime subscription
   useEffect(() => {
-    if (!userId) return;
-
     let unsubscribe = null;
-
     const setupRealtime = () => {
       const databaseId = import.meta.env.VITE_APPWRITE_DATABASE_ID;
       const collectionId = import.meta.env.VITE_APPWRITE_POSTS_COLLECTION_ID;
-
-      console.log("🔌 Setting up realtime subscription");
-
       unsubscribe = client.subscribe(
         `databases.${databaseId}.collections.${collectionId}.documents`,
         (response) => {
-          console.log("🔔 Realtime event:", response.events);
           const post = response.payload;
-
-          // Only handle posts from current user
-          if (post.authorId !== userId) {
-            console.log("Ignoring post from different author");
-            return;
-          }
-
-          // Handle create event
           if (
             response.events.includes(
               "databases.*.collections.*.documents.*.create"
             )
           ) {
-            console.log("➕ Adding new post to state");
             dispatch(addPost(post));
-          }
-          // Handle update event
-          else if (
+          } else if (
             response.events.includes(
               "databases.*.collections.*.documents.*.update"
             )
           ) {
-            console.log("✏️ Updating post in state");
             dispatch(updatePostInState(post));
-          }
-          // Handle delete event
-          else if (
+          } else if (
             response.events.includes(
               "databases.*.collections.*.documents.*.delete"
             )
           ) {
-            console.log("🗑️ Removing post from state");
             dispatch(removePost(post.$id));
           }
         }
       );
-
       unsubscribeRef.current = unsubscribe;
     };
-
     setupRealtime();
-
-    // Cleanup on unmount
     return () => {
-      if (unsubscribeRef.current) {
-        console.log("🔌 Unsubscribing from realtime");
-        unsubscribeRef.current();
-        unsubscribeRef.current = null;
-      }
+      if (unsubscribeRef.current) unsubscribeRef.current();
     };
-  }, [userId, dispatch]);
+  }, [dispatch]);
 
   const generateSlug = (title) => {
     return title
@@ -271,7 +240,7 @@ const Dashboard = () => {
         coverImage: formData.coverImage || "",
         coverImageId: formData.coverImageId || "",
         category: formData.category,
-        authorId: userId,
+        authorId: userId.current,
         isPublic: formData.isPublished,
       };
 
@@ -286,8 +255,9 @@ const Dashboard = () => {
         console.log("✅ Post updated");
       } else {
         // Create new post
-        await dispatch(createPost(postData)).unwrap();
-        console.log("✅ Post created");
+        await dispatch(createPost(postData)).then((res) => {
+          dispatch(fetchPostsByAuthor(userId.current));
+        });
       }
 
       handleCloseModal();
@@ -524,7 +494,7 @@ const Dashboard = () => {
                     </span>
                   </div>
 
-                  <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="absolute top-3 right-3 flex gap-2   ">
                     <button
                       onClick={() => handleEdit(post)}
                       className="p-2.5 bg-white rounded-lg shadow-lg hover:bg-indigo-50 hover:scale-110 transition-all duration-200"
