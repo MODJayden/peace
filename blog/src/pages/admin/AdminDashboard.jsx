@@ -76,7 +76,7 @@ const Dashboard = () => {
         const currentUserId = userResponse.$id;
         userId.current = currentUserId;
         if (!hasFetchedRef.current) {
-          await dispatch(fetchPostsByAuthor(currentUserId));
+          await dispatch(fetchPostsByAuthor(userId.current ));
           hasFetchedRef.current = true;
         }
       } catch (error) {
