@@ -72,13 +72,21 @@ const Dashboard = () => {
   useEffect(() => {
     const initializeData = async () => {
       try {
-        const userResponse = await dispatch(getUser()).unwrap();
-        const currentUserId = userResponse.$id;
-        userId.current = currentUserId;
+        await dispatch(getUser()).then(async (res) => {
+          if (res.payload.$id) {
+            userId.current = res.payload.$id;
+            await dispatch(fetchPostsByAuthor(res.payload.$id)).then((res) => {
+              console.log(res);
+            });
+            hasFetchedRef.current = true;
+          }
+        });
+        /*   
         if (!hasFetchedRef.current) {
-          await dispatch(fetchPostsByAuthor(userId.current ));
+            console.log(res);
+          });
           hasFetchedRef.current = true;
-        }
+        } */
       } catch (error) {
         console.error("Failed to initialize:", error);
         setError("Failed to load user data");
