@@ -1,22 +1,26 @@
 import { useSelector } from "react-redux";
-import {
-  selectAdmin,
-  selectIsAuthenticated,
-  selectIsLoading,
-  selectError,
-} from "@/store/slices/authSlice";
+import { USER_ROLES, ROLE_HIERARCHY } from "@/constants/roles";
 
 export function useAuth() {
-  const admin = useSelector(selectAdmin);
-  const isAuthenticated = useSelector(selectIsAuthenticated);
-  const isLoading = useSelector(selectIsLoading);
-  const error = useSelector(selectError);
+  const { user, isBootstrapping, status, error } = useSelector((state) => state.auth);
+
+  const hasMinRole = (minRole) => {
+    if (!user) return false;
+    const userLevel = ROLE_HIERARCHY.indexOf(user.role);
+    const minLevel = ROLE_HIERARCHY.indexOf(minRole);
+    return userLevel >= minLevel;
+  };
 
   return {
-    admin,
-    isAuthenticated,
-    isAdmin: isAuthenticated, // Since only admins can authenticate
-    isLoading,
+    user,
+    isAuthenticated: !!user,
+    isBootstrapping,
+    status,
     error,
+    hasMinRole,
+    isAuthor: user ? hasMinRole(USER_ROLES.AUTHOR) : false,
+    isEditor: user ? hasMinRole(USER_ROLES.EDITOR) : false,
+    isAdmin: user ? hasMinRole(USER_ROLES.ADMIN) : false,
+    isSuperAdmin: user?.role === USER_ROLES.SUPER_ADMIN,
   };
 }
